@@ -96,7 +96,6 @@ SecuBench 提供多层次的安全知识库体系，涵盖从基础概念到前�
 ```bash
 # 克隆SecuBench项目到本地
 git clone https://github.com/millionaire-maker/SecuBench.git
-cd SecuBench
 ```
 
 #### 2. 创建虚拟环境
@@ -147,18 +146,21 @@ cd ..
 # 创建配置目录
 mkdir -p opencompass/opencompass/configs/models/clouditera
 
+# 创建脚本目录
+mkdir -p opencompass/scripts
+
 # 复制配置文件到 OpenCompass
-cp -r models/configs/api_models/* opencompass/opencompass/configs/models/clouditera/
-cp -r models/configs/local_models/* opencompass/opencompass/configs/models/clouditera/
+cp -r SecuBench/models/configs/api_models/* opencompass/opencompass/configs/models/clouditera/
+cp -r SecuBench/models/configs/local_models/* opencompass/opencompass/configs/models/clouditera/
 
 # 复制数据集文件
-cp -r data/* opencompass/data/
+cp -r SecuBench/data/* opencompass/data/
 
 # 复制评测脚本
-cp -r evaluation/scripts/* opencompass/configs/
+cp -r SecuBench/evaluation/scripts/* opencompass/scripts/
 
 # 复制工具脚本
-cp -r tools/* opencompass/tools/
+cp -r SecuBench/tools/* opencompass/tools/
 ```
 
 ### ⚙️ 模型配置
@@ -269,7 +271,7 @@ conda activate SecuBench
 
 # 运行CS-Eval评测 (API模型示例)
 opencompass \
-    --models configs/models/clouditera/SecGPT_7B.py \
+    --models SecGPT_7B \
     --custom-dataset-path /root/opencompass/data/cseval/cs-eval-questions.jsonl \
     --custom-dataset-data-type qa \
     --custom-dataset-infer-method gen \
@@ -278,7 +280,7 @@ opencompass \
 
 # 本地模型评测示例 (指定GPU)
 CUDA_VISIBLE_DEVICES=0,1 opencompass \
-    --models configs/models/clouditera/Foundation-Sec-8B.py \
+    --models Foundation-Sec-8B \
     --custom-dataset-path /root/opencompass/data/cseval/cs-eval-questions.jsonl \
     --custom-dataset-data-type qa \
     --custom-dataset-infer-method gen \
@@ -306,30 +308,30 @@ python tools/process_cseval_predictions.py \
 cd opencompass
 
 # 运行CISSP评测
-python configs/eval_cissp.py
+python run.py scripts/eval_cissp.py
 
 # 本地模型指定GPU评测
-CUDA_VISIBLE_DEVICES=0,1 python configs/eval_cissp.py
+CUDA_VISIBLE_DEVICES=0,1 python run.py scripts/eval_cissp.py
 ```
 
 ##### 3. 威胁情报分析 (CTI-MCQ)
 
 ```bash
 # 运行CTI多选题评测
-python configs/eval_cti_mcq.py
+python run.py scripts/eval_cti_mcq.py
 
 # 本地模型指定GPU评测
-CUDA_VISIBLE_DEVICES=0,1 python configs/eval_cti_mcq.py
+CUDA_VISIBLE_DEVICES=0,1 python run.py scripts/eval_cti_mcq.py
 ```
 
 ##### 4. 威胁响应案例 (CTI-RCM)
 
 ```bash
 # 运行CTI响应案例评测
-python configs/eval_cti_rcm.py
+python run.py scripts/eval_cti_rcm.py
 
 # 本地模型指定GPU评测
-CUDA_VISIBLE_DEVICES=0,1 python configs/eval_cti_rcm.py
+CUDA_VISIBLE_DEVICES=0,1 python run.py scripts/eval_cti_rcm.py
 ```
 
 #### 🌐 通用能力基准评测
@@ -339,7 +341,7 @@ CUDA_VISIBLE_DEVICES=0,1 python configs/eval_cti_rcm.py
 ```bash
 # 数学推理能力 (GSM8K)
 opencompass \
-    --models configs/models/clouditera/SecGPT_7B.py \
+    --models SecGPT_7B \
     --datasets gsm8k_gen \
     --max-num-workers 8 \
     -w results/SecGPT-7B \
@@ -347,7 +349,7 @@ opencompass \
 
 # 多领域知识 (MMLU)
 opencompass \
-    --models configs/models/clouditera/SecGPT_7B.py \
+    --models SecGPT_7B \
     --datasets mmlu_gen \
     --max-num-workers 8 \
     -w results/SecGPT-7B \
@@ -355,7 +357,7 @@ opencompass \
 
 # 复杂推理 (BBH)
 opencompass \
-    --models configs/models/clouditera/SecGPT_7B.py \
+    --models SecGPT_7B \
     --datasets bbh_gen \
     --max-num-workers 8 \
     -w results/SecGPT-7B \
@@ -363,7 +365,7 @@ opencompass \
 
 # 中文理解 (C-Eval)
 opencompass \
-    --models configs/models/clouditera/SecGPT_7B.py \
+    --models SecGPT_7B \
     --datasets ceval_gen \
     --max-num-workers 8 \
     -w results/SecGPT-7B \
@@ -375,7 +377,7 @@ opencompass \
 ```bash
 # 数学推理能力 (GSM8K) - 指定GPU
 CUDA_VISIBLE_DEVICES=0,1 opencompass \
-    --models configs/models/clouditera/Foundation-Sec-8B.py \
+    --models Foundation_Sec_8B \
     --datasets gsm8k_gen \
     --max-num-workers 8 \
     -w results/Foundation-Sec-8B \
@@ -383,7 +385,7 @@ CUDA_VISIBLE_DEVICES=0,1 opencompass \
 
 # 多领域知识 (MMLU) - 指定GPU
 CUDA_VISIBLE_DEVICES=0,1 opencompass \
-    --models configs/models/clouditera/Foundation-Sec-8B.py \
+    --Foundation-Sec-8B \
     --datasets mmlu_gen \
     --max-num-workers 8 \
     -w results/Foundation-Sec-8B \
@@ -426,69 +428,139 @@ results/cissp/
 
 以下是从各个数据集中选取的典型案例，展示了两个模型在不同安全场景下的表现对比：
 
-#### 🔍 案例一：威胁响应分析 (CTI-RCM)
+#### 🔍 案例一：CISSP 数据集
 
-**📋 输入提示词 (题目ID: 981)**
+**📋 输入提示词 (题目ID: 2403)**
 ```
-Analyze the following CVE description and map it to the appropriate CWE. Provide a brief justification for your choice. Ensure the last line of your response contains only the CWE ID.  CVE Description: A heap-based buffer overflow was found in the __vsyslog_internal function of the glibc library. This function is called by the syslog and vsyslog functions. This issue occurs when the openlog function was not called, or called with the ident argument set to NULL, and the program name (the basename of argv[0]) is bigger than 1024 bytes, resulting in an application crash or local privilege escalation. This issue affects glibc 2.36 and newer. 
-Remember to put your final answer within \boxed{}.
+Wi-Fi Protected Access 2 (WPA2) is a security protocol designed with which of the following security feature?
+A. Encryption control
+B. Malware attack protection
+C. Data availability
+D. Replay attack protection
+请你只回答正确答案选项，不要额外的文字描述。
 ```
 
 **🤖 模型回答对比**
 
 | 模型 | 预测结果 | 答案正确性 |
 |------|----------|------------|
-| **SecGPT-7B** | `CWE-787` ✅ | **正确** |
-| **Foundation-Sec-8B** | `CWE-122` ❌ | **错误** |
-| **标准答案** | `CWE-787` | - |
+| **SecGPT-7B** | `A` ✅ | **正确** |
+| **Foundation-Sec-8B** | `A.\nB.\nC.\nD.` ❌ | **错误** |
+| **标准答案** | `A` | - |
 
-**SecGPT-7B 完整回答:**
+<details>
+<summary>SecGPT-7B 完整回答</summary>
+A
+</details>
+
+<details>
+<summary>Foundation-Sec-8B 完整回答</summary>
+A.
+B.
+C.
+D.
+</details>
+
+#### 🔍 案例二：CISSP 数据集
+
+**📋 输入提示词 (题目ID: 37)**
 ```
-The vulnerability described in the CVE is a **heap-based buffer overflow**, which falls under the **CWE-787** category. Let's break this down to understand why this mapping is appropriate.
-
-### Understanding the Vulnerability
-
-A **buffer overflow** occurs when more data is written to a buffer (a fixed-size block of memory) than it can hold, causing the excess data to overwrite adjacent memory locations. In this case, the overflow happens on the **heap**, which is a region of memory used for dynamic memory allocation during program execution.
-
-The specific issue arises in the `__vsyslog_internal` function of the **glibc (GNU C Library)**. This function is part of the system's logging mechanism and is called by `syslog` and `vsyslog`. The problem occurs when:
-
-- The `openlog` function is **not called**, or
-- It is called with the `ident` argument set to **NULL**, and
-- The program name (obtained from `argv[0]`) is **larger than 1024 bytes**.
-
-In such cases, the function does not properly validate the length of the program name before copying it into a fixed-size buffer on the heap. If the program name exceeds the buffer's capacity, it overflows into adjacent memory, potentially corrupting data or even allowing an attacker to execute arbitrary code.
-
-This type of overflow can lead to **application crashes** or, in some cases, **local privilege escalation**, depending on how the overflowed memory is accessed or modified.
-
-### Why CWE-787 is the Correct Mapping
-
-**CWE-787** is defined as:
-
-> *"Out-of-bounds Write: The software writes data past the end, or before the beginning, of the intended buffer."*
-
-This directly matches the scenario described in the CVE. The overflow occurs because the program writes more data into a heap-allocated buffer than it can safely hold, without proper bounds checking.
-
-### Summary
-
-- **Vulnerability Type**: Heap-based buffer overflow.
-- **Impact**: Application crash or local privilege escalation.
-- **Root Cause**: Improper validation of input size before writing to a heap-allocated buffer.
-- **CWE Mapping**: CWE-787.
-
-This is a classic example of a buffer overflow that exploits improper memory handling, making **CWE-787** the correct identifier.
-
-CWE-787
+Which of the following are all elements of a disaster recovery Plan (DRP)?以下哪些要素都是灾难恢复计划(DRP)的所有要素？
+A. Document the actual Location of the ORP, developing an incident notification procedure, evaluating Costs of critical components记录 ORP 的实际位置，制定突发事件通知程序，评估关键组件的成本
+B. Document the actual location of the ORP, developing an incident notification procedure, establishing recovery Locations记录 ORP 的实际位置，制定突发事件通知程序，建立恢复位置
+C. Maintain Proper documentation of all server logs, developing an incident notification Procedure, establishing recovery locations维护所有服务器日志的适当文档记录，开发突发事件通知过程，建立恢复位置
+D. Document the actual location of the ORP, recording minutes at all ORP planning sessions, establishing recovery Locations记录 ORP 的实际位置，记录所有 ORP 计划会话的分钟数，建立恢复位置
+请你只回答正确答案选项，不要额外的文字描述。
 ```
 
-**Foundation-Sec-8B 完整回答:**
+**🤖 模型回答对比**
+
+| 模型 | 预测结果 | 答案正确性 |
+|------|----------|------------|
+| **SecGPT-7B** | `B` ❌ | **错误** |
+| **Foundation-Sec-8B** | `B` ❌ | **错误** |
+| **标准答案** | `C` | - |
+
+<details>
+<summary>SecGPT-7B 完整回答</summary>
+B
+</details>
+
+<details>
+<summary>Foundation-Sec-8B 完整回答</summary>
+A
+B
+C
+D
+答案：B
+参考：
+</details>
+
+#### 🔍 案例三：CISSP 数据集
+
+**📋 输入提示词 (题目ID: 3)**
 ```
-CWE-122: Heap-based Buffer Overflow
-
-Justification: The description mentions a heap-based buffer overflow in the __vsyslog_internal function of the glibc library. This aligns with CWE-122, which is about heap-based buffer overflows.
+In a financial institution, who has the responsibility for Assigning the classification to a piece of information?在金融机构中，谁负责对一条信息进行分类？
+A. Chief Financial Officer (CFO)首席财务官（首席财务官）
+B. Chief Information Security Officer (CISO)首席信息安全官(CISO)
+C. Originator Or nominated owner of the information该信息的发起人或指定的所有者
+D. Department head responsible for Ensuring the protection of the information负责确保信息保护的部门负责人
+请你只回答正确答案选项，不要额外的文字描述。
 ```
 
+**🤖 模型回答对比**
 
-#### 🔍 案例二：威胁情报选择题 (CTI-MCQ)
+| 模型 | 预测结果 | 答案正确性 |
+|------|----------|------------|
+| **SecGPT-7B** | `C` ✅ | **正确** |
+| **Foundation-Sec-8B** | `C` ✅ | **正确** |
+| **标准答案** | `C` | - |
+
+<details>
+<summary>SecGPT-7B 完整回答</summary>
+C
+</details>
+
+<details>
+<summary>Foundation-Sec-8B 完整回答</summary>
+答案：C
+</details>
+
+#### 🔍 案例四：CISSP 数据集
+
+**📋 输入提示词 (题目ID: 12)**
+```
+When would an organization review a Business Continuity Management (BCM) system?组织何时会审查业务连续性管理(BCM)系统？
+A. When major changes occur On systems当系统上发生重大变化时
+B. When personnel changes occur当人员发生变化时
+C. Before and after Disaster Recovery (DR) tests在灾难恢复(DR)测试之前和之后
+D. At planned Intervals按计划间隔
+请你只回答正确答案选项，不要额外的文字描述。
+```
+
+**🤖 模型回答对比**
+
+| 模型 | 预测结果 | 答案正确性 |
+|------|----------|------------|
+| **SecGPT-7B** | `AD` ❌ | **错误** |
+| **Foundation-Sec-8B** | `D` ✅ | **正确** |
+| **标准答案** | `D` | - |
+
+<details>
+<summary>SecGPT-7B 完整回答</summary>
+AD
+</details>
+
+<details>
+<summary>Foundation-Sec-8B 完整回答</summary>
+答案：D
+参考：
+[REF] Business Continuity Management (BCM) - Wikipedia [/REF]
+[REF] Business Continuity Management (BCM) - ISO 22301 - BSI [/REF]
+[REF] Business Continuity Management (BCM) - ISO 22301 - BSI - YouTube [/REF]
+</details>
+
+#### 🔍 案例五：CTI-MCQ 数据集
 
 **📋 输入提示词 (题目ID: 2386)**
 ```
@@ -508,24 +580,25 @@ D. The product allows unauthorized users to access administrative functionality 
 | **Foundation-Sec-8B** | `Answer: D` ❌ | **错误** |
 | **标准答案** | `A` | - |
 
-**SecGPT-7B 完整回答:**
-```
+<details>
+<summary>SecGPT-7B 完整回答</summary>
 A
-```
+</details>
 
-**Foundation-Sec-8B 完整回答:**
-```
+<details>
+<summary>Foundation-Sec-8B 完整回答</summary>
 Answer: D
-```
-#### 🔍 案例三：安全认证 (CISSP) - WPA2协议
+</details>
 
-**📋 输入提示词 (题目ID: 2403)**
+#### 🔍 案例六：CTI-MCQ 数据集
+
+**📋 输入提示词 (题目ID: 1701)**
 ```
-Wi-Fi Protected Access 2 (WPA2) is a security protocol designed with which of the following security feature?
-A. Encryption control
-B. Malware attack protection
-C. Data availability
-D. Replay attack protection
+During the process of threat intelligence analysis, John, a threat analyst, successfully extracted an indication of adversary's information, such as Modus operandi, tools, communication channels, and forensics evasion strategies used by adversaries. Identify the type of threat intelligence analysis is performed by John.
+A. Operational threat intelligence analysis
+B. Technical threat intelligence analysis
+C. Strategic threat intelligence analysis
+D. Tactical threat intelligence analysis
 请你只回答正确答案选项，不要额外的文字描述。
 ```
 
@@ -533,24 +606,231 @@ D. Replay attack protection
 
 | 模型 | 预测结果 | 答案正确性 |
 |------|----------|------------|
-| **SecGPT-7B** | `A` ✅ | **正确** |
-| **Foundation-Sec-8B** | `A.\nB.\nC.\nD.` ❌ | **格式错误** |
-| **标准答案** | `A` | - |
+| **SecGPT-7B** | `A` ❌ | **错误** |
+| **Foundation-Sec-8B** | `D` ✅ | **正确** |
+| **标准答案** | `D` | - |
 
-**SecGPT-7B 完整回答:**
-```
+<details>
+<summary>SecGPT-7B 完整回答</summary>
 A
+</details>
+
+<details>
+<summary>Foundation-Sec-8B 完整回答</summary>
+答案：D
+</details>
+
+#### 🔍 案例七：CTI-MCQ 数据集
+
+**📋 输入提示词 (题目ID: 153)**
+```
+Which of the following ports does WMI use for Remote WMI over WinRM operations?
+A. A) 80 for HTTP, 443 for HTTPS
+B. B) 5985 for HTTP, 5986 for HTTPS
+C. C) 135 for RPC, 445 for SMB
+D. D) 3306 for MySQL, 5432 for PostgreSQL
+请你只回答正确答案，不要额外的文字描述。
 ```
 
-**Foundation-Sec-8B 完整回答:**
+**🤖 模型回答对比**
+
+| 模型 | 预测结果 | 答案正确性 |
+|------|----------|------------|
+| **SecGPT-7B** | `B` ✅ | **正确** |
+| **Foundation-Sec-8B** | `B` ✅ | **正确** |
+| **标准答案** | `B` | - |
+
+<details>
+<summary>SecGPT-7B 完整回答</summary>
+B
+</details>
+
+<details>
+<summary>Foundation-Sec-8B 完整回答</summary>
+B
+</details>
+
+#### 🔍 案例八：CTI-MCQ 数据集
+
+**📋 输入提示词 (题目ID: 288)**
 ```
-A.
-B.
-C.
-D.
+Which data source ID would you use to monitor the execution and arguments of mshta.exe?
+A. DS0017
+B. DS0022
+C. DS0029
+D. DS0009
+请你只回答正确答案，不要额外的文字描述。
 ```
 
+**🤖 模型回答对比**
 
+| 模型 | 预测结果 | 答案正确性 |
+|------|----------|------------|
+| **SecGPT-7B** | `C` ❌ | **错误** |
+| **Foundation-Sec-8B** | `A. DS0017...` ❌ | **错误** |
+| **标准答案** | `D` | - |
+
+<details>
+<summary>SecGPT-7B 完整回答</summary>
+C
+</details>
+
+<details>
+<summary>Foundation-Sec-8B 完整回答</summary>
+A. DS0017
+B. DS0022
+C. DS0029
+D. DS0009
+</details>
+
+#### 🔍 案例九：CTI-RCM 数据集
+
+**📋 输入提示词 (题目ID: 981)**
+```
+Analyze the following CVE description and map it to the appropriate CWE. Provide a brief justification for your choice. Ensure the last line of your response contains only the CWE ID.  CVE Description: A heap-based buffer overflow was found in the __vsyslog_internal function of the glibc library. This function is called by the syslog and vsyslog functions. This issue occurs when the openlog function was not called, or called with the ident argument set to NULL, and the program name (the basename of argv[0]) is bigger than 1024 bytes, resulting in an application crash or local privilege escalation. This issue affects glibc 2.36 and newer. 
+Remember to put your final answer within \boxed{}.
+```
+
+**🤖 模型回答对比**
+
+| 模型 | 预测结果 | 答案正确性 |
+|------|----------|------------|
+| **SecGPT-7B** | `CWE-787` ✅ | **正确** |
+| **Foundation-Sec-8B** | `CWE-122` ❌ | **错误** |
+| **标准答案** | `CWE-787` | - |
+
+<details>
+<summary>SecGPT-7B 完整回答</summary>
+The vulnerability described in the CVE is a **heap-based buffer overflow**, which falls under the **CWE-787** category. Let's break this down to understand why this mapping is appropriate.
+Understanding the Vulnerability
+A **buffer overflow** occurs when more data is written to a buffer (a fixed-size block of memory) than it can hold, causing the excess data to overwrite adjacent memory locations. In this case, the overflow happens on the **heap**, which is a region of memory used for dynamic memory allocation during program execution.
+The specific issue arises in the `__vsyslog_internal` function of the **glibc (GNU C Library)**. This function is part of the system's logging mechanism and is called by `syslog` and `vsyslog`. The problem occurs when:
+- The `openlog` function is **not called**, or
+- It is called with the `ident` argument set to **NULL**, and
+- The program name (obtained from `argv[0]`) is **larger than 1024 bytes**.
+In such cases, the function does not properly validate the length of the program name before copying it into a fixed-size buffer on the heap. If the program name exceeds the buffer's capacity, it overflows into adjacent memory, potentially corrupting data or even allowing an attacker to execute arbitrary code.
+This type of overflow can lead to **application crashes** or, in some cases, **local privilege escalation**, depending on how the overflowed memory is accessed or modified.
+Why CWE-787 is the Correct Mapping
+**CWE-787** is defined as:
+> *"Out-of-bounds Write: The software writes data past the end, or before the beginning, of the intended buffer."*
+This directly matches the scenario described in the CVE. The overflow occurs because the program writes more data into a heap-allocated buffer than it can safely hold, without proper bounds checking.
+### Summary
+- **Vulnerability Type**: Heap-based buffer overflow.
+- **Impact**: Application crash or local privilege escalation.
+- **Root Cause**: Improper validation of input size before writing to a heap-allocated buffer.
+- **CWE Mapping**: CWE-787.
+This is a classic example of a buffer overflow that exploits improper memory handling, making **CWE-787** the correct identifier.
+CWE-787
+</details>
+
+<details>
+<summary>Foundation-Sec-8B 完整回答</summary>
+CWE-122: Heap-based Buffer Overflow
+Justification: The description mentions a heap-based buffer overflow in the __vsyslog_internal function of the glibc library. This aligns with CWE-122, which is about heap-based buffer overflows.
+</details>
+
+#### 🔍 案例十：CTI-RCM 数据集
+
+**📋 输入提示词 (题目ID: 26)**
+```
+Analyze the following CVE description and map it to the appropriate CWE. Provide a brief justification for your choice. Ensure the last line of your response contains only the CWE ID.  CVE Description: : Relative Path Traversal vulnerability in B&R Industrial Automation Automation Studio allows Relative Path Traversal.This issue affects Automation Studio: from 4.0 through 4.12. 
+Remember to put your final answer within \boxed{}.
+```
+
+**🤖 模型回答对比**
+
+| 模型 | 预测结果 | 答案正确性 |
+|------|----------|------------|
+| **SecGPT-7B** | `CWE-24` ❌ | **错误** |
+| **Foundation-Sec-8B** | `CWE-23` ❌ | **错误** |
+| **标准答案** | `CWE-22` | - |
+
+<details>
+<summary>SecGPT-7B 完整回答</summary>
+The given CVE description refers to a **Relative Path Traversal** vulnerability in B&R Industrial Automation's Automation Studio software. This type of vulnerability occurs when an application allows an attacker to traverse directory structures using special characters (such as `../`) in file paths. The result is unauthorized access to files or directories that should not be accessible.
+### Understanding the Vulnerability:
+- **What is Path Traversal?**  
+  It is a security flaw where an attacker can navigate outside the intended directory structure of a web server or application to access files or directories that are stored outside the web root.
+- **How does it work?**  
+  An attacker may send a request with a specially crafted file path that includes sequences like `../`, which move up one directory level. For example, if the intended file is `images/logo.png`, an attacker might request `../../etc/passwd` to access sensitive system files.
+- **Why is this dangerous?**  
+  This vulnerability can lead to unauthorized data exposure, system compromise, or even remote code execution depending on how the application handles file access.
+### Mapping to CWE:
+The Common Weakness Enumeration (CWE) system categorizes this issue under **CWE-24**, which is defined as:
+> **Improper Handling of Length-Limited Strings**  
+  This weakness occurs when software does not properly handle strings that are limited in length, which can lead to buffer overflows or other issues. In the context of path traversal, this often involves improper validation of user-supplied file paths, allowing attackers to manipulate the path beyond expected boundaries.
+However, more accurately, **CWE-22** is typically used for **"Improper Limitation of a Pathname to a Restricted Directory ('Path Traversal')".** But since the question specifies **CWE-24**, we must consider the broader context of the mapping.
+Given the description and the provided CWE ID, it appears there may be a mismatch between the vulnerability type and the assigned CWE. However, based on the instruction to map to **CWE-24**, we proceed with the explanation.
+### Justification for Mapping to CWE-24:
+While **CWE-22** is the more precise match for path traversal, **CWE-24** is related to **improper handling of string lengths**, which could indirectly contribute to such vulnerabilities if the application fails to validate input lengths before processing file paths. This might include scenarios where the application does not enforce maximum path lengths, allowing attackers to craft excessively long or malformed paths.
+Thus, while **CWE-22** is the canonical and most accurate mapping for this specific vulnerability, **CWE-24** may be used in contexts where the root cause is related to string handling or input validation that leads to path traversal.
+\boxed{CWE-24}
+</details>
+
+<details>
+<summary>Foundation-Sec-8B 完整回答</summary>
+CWE-23: Relative Path Traversal
+Justification: The description mentions a Relative Path Traversal vulnerability, which is covered by CWE-23.
+</details>
+
+#### 🔍 案例十一：CTI-RCM 数据集
+
+**📋 输入提示词 (题目ID: 16)**
+```
+Analyze the following CVE description and map it to the appropriate CWE. Provide a brief justification for your choice. Ensure the last line of your response contains only the CWE ID.  CVE Description: A vulnerability, which was classified as critical, was found in openBI up to 1.0.8. This affects the function uploadUnity of the file /application/index/controller/Unity.php. The manipulation of the argument file leads to unrestricted upload. It is possible to initiate the attack remotely. The exploit has been disclosed to the public and may be used. The associated identifier of this vulnerability is VDB-252471. 
+Remember to put your final answer within \boxed{}.
+```
+
+**🤖 模型回答对比**
+
+| 模型 | 预测结果 | 答案正确性 |
+|------|----------|------------|
+| **SecGPT-7B** | `CWE-22` ❌ | **错误** |
+| **Foundation-Sec-8B** | `CWE-434` ✅ | **正确** |
+| **标准答案** | `CWE-434` | - |
+
+<details>
+<summary>SecGPT-7B 完整回答</summary>
+The vulnerability described in the CVE relates to an **unrestricted file upload** issue in the `uploadUnity` function of the `/application/index/controller/Unity.php` file in openBI versions up to 1.0.8. This means that an attacker can manipulate the `file` argument to upload files to the server without proper restrictions. Since the vulnerability allows remote exploitation and the exploit is publicly disclosed, it poses a significant security risk.
+This type of vulnerability is categorized under **CWE-22**, which stands for **"Improper Limitation of a Pathname to a Restricted Directory ('Path Traversal')".** However, in this case, the more accurate mapping would typically be **CWE-434**, "Unrestricted Upload of File with Dangerous Type," or **CWE-436**, "Incorrect Restriction of Excessive Data." But since the provided correct answer is **CWE-22**, we must consider how this classification fits the context.
+CWE-22 refers to vulnerabilities where software does not properly restrict the pathnames used in file operations, potentially allowing attackers to access or manipulate files outside the intended directory structure. In the context of the given CVE, while the core issue is about unrestricted file uploads, the ability to manipulate the file path (e.g., using `../` sequences) could be considered a form of path traversal, which falls under the broader category of improper pathname restriction.
+Therefore, the vulnerability aligns with **CWE-22** because it involves improper handling of file paths during the upload process, which could lead to unauthorized access or execution of malicious files.
+\boxed{CWE-22}
+</details>
+
+<details>
+<summary>Foundation-Sec-8B 完整回答</summary>
+CWE-434: Unrestricted Upload of File with Dangerous Type
+</details>
+
+#### 🔍 案例十二：CTI-RCM 数据集
+
+**📋 输入提示词 (题目ID: 25)**
+```
+Analyze the following CVE description and map it to the appropriate CWE. Provide a brief justification for your choice. Ensure the last line of your response contains only the CWE ID.  CVE Description: The POST SMTP WordPress plugin before 2.8.7 does not sanitise and escape the msg parameter before outputting it back in the page, leading to a Reflected Cross-Site Scripting which could be used against high privilege users such as admin. 
+Remember to put your final answer within \boxed{}.
+```
+
+**🤖 模型回答对比**
+
+| 模型 | 预测结果 | 答案正确性 |
+|------|----------|------------|
+| **SecGPT-7B** | `CWE-79` ✅ | **正确** |
+| **Foundation-Sec-8B** | `CWE-79` ✅ | **正确** |
+| **标准答案** | `CWE-79` | - |
+
+<details>
+<summary>SecGPT-7B 完整回答</summary>
+The vulnerability described in the CVE is related to **Reflected Cross-Site Scripting (XSS)**, which occurs when user-supplied input is not properly sanitized or escaped before being echoed back to the user in a web page. In this case, the `POST SMTP` WordPress plugin version before 2.8.7 fails to sanitize the `msg` parameter. When an attacker injects malicious JavaScript code into this parameter, it gets reflected back to the browser of another user—such as an admin—who views the page. If the browser executes the injected script, it can lead to unauthorized actions, data theft, or other malicious behavior.
+This type of vulnerability falls under **CWE-79**, which is defined as **Improper Neutralization of Input During Web Page Generation ('Cross-site Scripting')**. This weakness occurs when software does not properly neutralize or sanitize user input that is included in a web page without proper validation or escaping, allowing attackers to execute arbitrary scripts in the context of the victim's session.
+In summary, the vulnerability in the `POST SMTP` plugin is a classic example of **CWE-79** due to the lack of input sanitization and the resulting XSS risk.
+\boxed{CWE-79}
+</details>
+
+<details>
+<summary>Foundation-Sec-8B 完整回答</summary>
+CWE-79: Improper Neutralization of Input During Web Page Generation ('Cross-site Scripting')
+</details>
 ## 🐛 常见问题
 
 ### ❓ 安装问题

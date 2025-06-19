@@ -123,4 +123,4 @@ models = SecGPT_7B_model
 # math_reader_cfg['test_range'] = '[0:8]'
 
 # Output directory
-work_dir = 'outputs/SecGPT_7B'
+work_dir = 'results/SecGPT-7B'

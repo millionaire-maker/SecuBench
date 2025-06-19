@@ -13,10 +13,10 @@ from opencompass.models.openai_api import OpenAISDK
 
 # Import pre-configured models from OpenCompass
 with read_base():
-    from opencompass.configs.models.cloutitera.SecGPT_7B import (
+    from opencompass.configs.models.clouditera.SecGPT_7B import (
         models as SecGPT_7B_model,
     )
-    from opencompass.configs.models.cloutitera.SecGPT_14B import (
+    from opencompass.configs.models.clouditera.SecGPT_14B import (
         models as SecGPT_14B_model,
     )
 from opencompass.openicl.icl_prompt_template import PromptTemplate
@@ -95,7 +95,7 @@ math_eval_cfg = dict(
         ),
         dataset_cfg=dict(
             type=CustomDataset,
-            path='/home/opencompass/data/cissp',
+            path='/root/opencompass/data/cissp',
             file_name='cissp.jsonl',
             reader_cfg=math_reader_cfg,
         ),
@@ -108,7 +108,7 @@ math_eval_cfg = dict(
 datasets = [
     dict(
         type=CustomDataset,
-        path='/home/opencompass/data/cissp',
+        path='/root/opencompass/data/cissp',
         file_name='cissp.jsonl',
         reader_cfg=math_reader_cfg,
         infer_cfg=math_infer_cfg,
@@ -123,4 +123,4 @@ models = SecGPT_7B_model
 # math_reader_cfg['test_range'] = '[0:8]'
 
 # Output directory
-work_dir = 'outputs/SecGPT_7B'
+work_dir = 'results/SecGPT-7B'
