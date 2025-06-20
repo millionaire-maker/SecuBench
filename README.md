@@ -282,7 +282,7 @@ opencompass \
 
 # 本地模型评测示例 (指定GPU)
 CUDA_VISIBLE_DEVICES=0,1 opencompass \
-    --models Foundation-Sec-8B \
+    --models Foundation_Sec_8B \
     --custom-dataset-path /root/opencompass/data/cseval/cs-eval-questions.jsonl \
     --custom-dataset-data-type qa \
     --custom-dataset-infer-method gen \
@@ -291,15 +291,16 @@ CUDA_VISIBLE_DEVICES=0,1 opencompass \
 ```
 
 **第二步：提取预测结果**
+> ⚠️ **提取前配置**: 在提取模型结果前，请先修改 `opencompass/tools/process_cseval_predictions.py` 文件中的提取模型API配置。
 
 ```bash
 # 使用大模型提取模型预测答案
-python tools/process_cseval_predictions.py results/cseval/SecGPT-7B/secgpt_7b_cseval.json results/cseval/SecGPT-7B/secgpt_7b_cseval_extract.json
+python tools/process_cseval_predictions.py input_file_name output_file_name
 ```
 
 **第三步：提交评测**
 
-前往 [CS-Eval官网](https://cs-eval.com/#/app/submission) 提交 `secgpt_7b_cseval_extract.json` 文件获取最终评分。
+前往 [CS-Eval官网](https://cs-eval.com/#/app/submission) 提交经过模型提取答案后的Json文件获取最终评分。
 
 
 ##### 2. 安全认证评测 (CISSP)

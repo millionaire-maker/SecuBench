@@ -17,8 +17,8 @@ import pandas as pd
 import argparse
 
 # --- 配置区 ---
-MODEL_API_URL = "http://192.168.31.10:9999/v1/chat/completions"  # 模型API地址
-MODEL_NAME = "SecGPT"  # 模型名称
+MODEL_API_URL = "your_model_api_url"  # 模型API地址
+MODEL_NAME = "your_model_name"  # 模型名称
 # 更新SYSTEM_PROMPT以反映其作为提取专家的角色
 SYSTEM_PROMPT = """你是一个信息提取专家。你的任务是根据"原始提示"中的要求，从"预测内容"中提取出格式完全一致的答案。
 规则：
