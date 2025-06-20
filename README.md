@@ -29,7 +29,7 @@ SecuBench/
 
 ## 🌟 项目简介
 
-**SecuBench** 是一个专注于安全领域的开源模型评测平台，致力于为安全AI模型的评估提供全面的解决方案。通过标准化评测框架和丰富的安全知识库体系，SecuBench能够：
+**SecuBench** 是一个专注于安全领域的开源模型评测平台，致力于为安全AI模型的评估提供全面的解决方案。通过标准化评测框架和结构化的安全知识库体系，SecuBench能够：
 
 - 🎯 **深度评估模型安全能力**：针对漏洞识别、合规分析、威胁预测等专业领域提供专项评测
 - 📚 **集成多维知识库**：构建网络安全、行业合规、漏洞数据库等专业安全知识体系
@@ -226,7 +226,7 @@ models = [
     dict(
         type=TurboMindModel,
         abbr='Foundation-Sec-8B',
-        path='/root/.xinference/models/Foundation-Sec-8B/',  # 🔧 替换为您的模型路径
+        path='/path/to/your/Foundation-Sec-8B/',  # 🔧 替换为您的模型路径
         engine_config=dict(session_len=16384, max_batch_size=16, tp=1),
         gen_config=dict(top_k=1, temperature=1e-6, top_p=0.9, max_new_tokens=4096),
         max_seq_len=16384,
@@ -258,7 +258,7 @@ SecuBench 提供完整的评测流水线，从数据集选择到结果分析的�
 
 ##### 1. 网络安全综合能力评测 (CS-Eval)
 
-> 📝 **特别说明**: CS-Eval数据集没有提供参考答案，需要先获取模型预测结果，然后前往CS-Eval官网提交获取最终评分。
+> 📝 **特别说明**: CS-Eval数据集没有提供参考答案，需要先获取模型预测结果，然后前往CS-Eval官网提交获取最终评分。本项目利用大模型对预测结果进行自动答案提取。请注意，不同模型的提取效果可能存在差异，通常模型能力越强，提取结果越精准，最终得分也越可靠。
 
 **第一步：生成模型预测结果**
 
@@ -291,15 +291,13 @@ CUDA_VISIBLE_DEVICES=0,1 opencompass \
 **第二步：提取预测结果**
 
 ```bash
-# 使用工具脚本提取模型预测答案
-python tools/process_cseval_predictions.py \
-    --input results/SecGPT-7B/predictions/cs-eval-questions.jsonl \
-    --output results/SecGPT-7B/cs_eval_submission.json
+# 使用大模型提取模型预测答案
+python tools/process_cseval_predictions.py results/cseval/SecGPT-7B/secgpt_7b_cseval.json results/cseval/SecGPT-7B/secgpt_7b_cseval_extract.json
 ```
 
 **第三步：提交评测**
 
-前往 [CS-Eval官网](https://cs-eval.com/#/app/submission) 提交 `cs_eval_submission.json` 文件获取最终评分。
+前往 [CS-Eval官网](https://cs-eval.com/#/app/submission) 提交 `secgpt_7b_cseval_extract.json` 文件获取最终评分。
 
 ##### 2. 安全认证评测 (CISSP)
 
@@ -419,8 +417,8 @@ results/cissp/
 
 | 模型 | CS-Eval | CISSP | BBH | C-Eval | GSM8K | MMLU | CTI-MCQ | CTI-RCM |
 |------|---------|-------|-----|--------|-------|------|---------|---------|
-| **Foundation-Sec-8B** | 55.02 | 39.19 | 58.72 | 42.70 | 54.73 | 47.36 | 41.36 | 67.30 |
-| **SecGPT-7B** | 85.03 | 77.00 | 61.51 | 70.40 | 82.94 | 70.94 | 77.60 | 70.00 |
+| **Foundation-Sec-8B** | 55.02 | 49.12 | 58.72 | 42.70 | 54.73 | 47.36 | 43.40 | 67.30 |
+| **SecGPT-7B** | 88.24 | 77.86 | 61.51 | 70.40 | 82.94 | 70.94 | 74.56 | 70.30 |
 
 > 📋 **评测说明**: 以上所有评测得分均使用本项目提供的评测脚本和 OpenCompass 官方评测框架运行得出，确保结果的一致性和可重现性。
 
@@ -747,30 +745,16 @@ Remember to put your final answer within \boxed{}.
 
 <details>
 <summary>SecGPT-7B 完整回答</summary>
-The given CVE description refers to a **Relative Path Traversal** vulnerability in B&R Industrial Automation's Automation Studio software. This type of vulnerability occurs when an application allows an attacker to traverse directory structures using special characters (such as `../`) in file paths. The result is unauthorized access to files or directories that should not be accessible.
-### Understanding the Vulnerability:
-- **What is Path Traversal?**  
-  It is a security flaw where an attacker can navigate outside the intended directory structure of a web server or application to access files or directories that are stored outside the web root.
-- **How does it work?**  
-  An attacker may send a request with a specially crafted file path that includes sequences like `../`, which move up one directory level. For example, if the intended file is `images/logo.png`, an attacker might request `../../etc/passwd` to access sensitive system files.
-- **Why is this dangerous?**  
-  This vulnerability can lead to unauthorized data exposure, system compromise, or even remote code execution depending on how the application handles file access.
-### Mapping to CWE:
-The Common Weakness Enumeration (CWE) system categorizes this issue under **CWE-24**, which is defined as:
-> **Improper Handling of Length-Limited Strings**  
-  This weakness occurs when software does not properly handle strings that are limited in length, which can lead to buffer overflows or other issues. In the context of path traversal, this often involves improper validation of user-supplied file paths, allowing attackers to manipulate the path beyond expected boundaries.
-However, more accurately, **CWE-22** is typically used for **"Improper Limitation of a Pathname to a Restricted Directory ('Path Traversal')".** But since the question specifies **CWE-24**, we must consider the broader context of the mapping.
-Given the description and the provided CWE ID, it appears there may be a mismatch between the vulnerability type and the assigned CWE. However, based on the instruction to map to **CWE-24**, we proceed with the explanation.
-### Justification for Mapping to CWE-24:
-While **CWE-22** is the more precise match for path traversal, **CWE-24** is related to **improper handling of string lengths**, which could indirectly contribute to such vulnerabilities if the application fails to validate input lengths before processing file paths. This might include scenarios where the application does not enforce maximum path lengths, allowing attackers to craft excessively long or malformed paths.
-Thus, while **CWE-22** is the canonical and most accurate mapping for this specific vulnerability, **CWE-24** may be used in contexts where the root cause is related to string handling or input validation that leads to path traversal.
-\boxed{CWE-24}
+The vulnerability described in the CVE relates to an **unrestricted file upload** issue in the `uploadUnity` function of the `/application/index/controller/Unity.php` file in openBI versions up to 1.0.8. This means that an attacker can manipulate the `file` argument to upload files to the server without proper restrictions. Since the vulnerability allows remote exploitation and the exploit is publicly disclosed, it poses a significant security risk.
+This type of vulnerability is categorized under **CWE-22**, which stands for **"Improper Limitation of a Pathname to a Restricted Directory ('Path Traversal')".** However, in this case, the more accurate mapping would typically be **CWE-434**, "Unrestricted Upload of File with Dangerous Type," or **CWE-436**, "Incorrect Restriction of Excessive Data." But since the provided correct answer is **CWE-22**, we must consider how this classification fits the context.
+CWE-22 refers to vulnerabilities where software does not properly restrict the pathnames used in file operations, potentially allowing attackers to access or manipulate files outside the intended directory structure. In the context of the given CVE, while the core issue is about unrestricted file uploads, the ability to manipulate the file path (e.g., using `../` sequences) could be considered a form of path traversal, which falls under the broader category of improper pathname restriction.
+Therefore, the vulnerability aligns with **CWE-22** because it involves improper handling of file paths during the upload process, which could lead to unauthorized access or execution of malicious files.
+\boxed{CWE-22}
 </details>
 
 <details>
 <summary>Foundation-Sec-8B 完整回答</summary>
-CWE-23: Relative Path Traversal
-Justification: The description mentions a Relative Path Traversal vulnerability, which is covered by CWE-23.
+CWE-434: Unrestricted Upload of File with Dangerous Type
 </details>
 
 #### 🔍 案例十一：CTI-RCM 数据集

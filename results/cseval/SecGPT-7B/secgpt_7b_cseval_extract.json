@@ -453,7 +453,7 @@
     },
     {
         "question_id": 114,
-        "answer": "ABCD"
+        "answer": "ABC"
     },
     {
         "question_id": 115,
@@ -721,7 +721,7 @@
     },
     {
         "question_id": 181,
-        "answer": "C"
+        "answer": "c"
     },
     {
         "question_id": 182,
@@ -885,11 +885,11 @@
     },
     {
         "question_id": 222,
-        "answer": "A"
+        "answer": "a"
     },
     {
         "question_id": 223,
-        "answer": "C"
+        "answer": "c"
     },
     {
         "question_id": 224,
@@ -897,15 +897,15 @@
     },
     {
         "question_id": 225,
-        "answer": "B"
+        "answer": "b"
     },
     {
         "question_id": 226,
-        "answer": "D"
+        "answer": "d"
     },
     {
         "question_id": 227,
-        "answer": "B"
+        "answer": "b"
     },
     {
         "question_id": 228,
@@ -913,11 +913,11 @@
     },
     {
         "question_id": 229,
-        "answer": "A"
+        "answer": "a"
     },
     {
         "question_id": 230,
-        "answer": "B"
+        "answer": "b"
     },
     {
         "question_id": 231,
@@ -1013,7 +1013,7 @@
     },
     {
         "question_id": 254,
-        "answer": "D"
+        "answer": "d"
     },
     {
         "question_id": 255,
@@ -1145,7 +1145,7 @@
     },
     {
         "question_id": 287,
-        "answer": "ABCD"
+        "answer": "AC"
     },
     {
         "question_id": 288,
@@ -1265,7 +1265,7 @@
     },
     {
         "question_id": 317,
-        "answer": "ABCD"
+        "answer": "ACD"
     },
     {
         "question_id": 318,
@@ -1657,11 +1657,11 @@
     },
     {
         "question_id": 415,
-        "answer": "C"
+        "answer": "c"
     },
     {
         "question_id": 416,
-        "answer": "B"
+        "answer": "b"
     },
     {
         "question_id": 417,
@@ -1685,15 +1685,15 @@
     },
     {
         "question_id": 422,
-        "answer": "A"
+        "answer": "a"
     },
     {
         "question_id": 423,
-        "answer": "B"
+        "answer": "b"
     },
     {
         "question_id": 424,
-        "answer": "A"
+        "answer": "a"
     },
     {
         "question_id": 425,
@@ -1701,11 +1701,11 @@
     },
     {
         "question_id": 426,
-        "answer": "A"
+        "answer": "a"
     },
     {
         "question_id": 427,
-        "answer": "C"
+        "answer": "c"
     },
     {
         "question_id": 428,
@@ -1713,7 +1713,7 @@
     },
     {
         "question_id": 429,
-        "answer": "B"
+        "answer": "b"
     },
     {
         "question_id": 430,
@@ -2441,7 +2441,7 @@
     },
     {
         "question_id": 611,
-        "answer": "B D"
+        "answer": "BD"
     },
     {
         "question_id": 612,
@@ -5253,7 +5253,7 @@
     },
     {
         "question_id": 1314,
-        "answer": "ABCD"
+        "answer": "AC"
     },
     {
         "question_id": 1315,
@@ -5513,7 +5513,7 @@
     },
     {
         "question_id": 1379,
-        "answer": "ABCD"
+        "answer": "ABC"
     },
     {
         "question_id": 1380,
@@ -5637,7 +5637,7 @@
     },
     {
         "question_id": 1410,
-        "answer": "ABCD"
+        "answer": "ABD"
     },
     {
         "question_id": 1411,
@@ -5737,7 +5737,7 @@
     },
     {
         "question_id": 1435,
-        "answer": "D"
+        "answer": "B"
     },
     {
         "question_id": 1436,
@@ -6601,7 +6601,7 @@
     },
     {
         "question_id": 1651,
-        "answer": "AB"
+        "answer": ""
     },
     {
         "question_id": 1652,
@@ -7001,7 +7001,7 @@
     },
     {
         "question_id": 1751,
-        "answer": "影响的组件：armeria-saml  \n版本号：1.27.2之前的版本"
+        "answer": "```\n影响的组件：armeria-saml\n版本号：1.27.2之前的版本\n```"
     },
     {
         "question_id": 1752,
@@ -7041,19 +7041,19 @@
     },
     {
         "question_id": 1761,
-        "answer": "In this case, the vulnerability described is related to the **jose4j** component in Java. The issue arises when an attacker provides a **large p2c (aka PBES2 Count)** value, which can lead to a **denial of service (DoS)** due to excessive CPU consumption.\n\n### Explanation of the Vulnerability:\n- **jose4j** is a Java implementation of JSON Web Token (JWT) and JSON Web Signature (JWS) specifications.\n- The vulnerability exists in versions of jose4j prior to **0.9.4**.\n- When a malicious actor supplies a very large value for the **p2c parameter**, the component processes it in a way that consumes an excessive amount of CPU resources.\n- This can lead to a **denial of service**, where the system becomes unresponsive or slows down significantly due to the high CPU usage.\n\n### Key Information:\n- **Component**: jose4j\n- **Affected Versions**: Before 0.9.4\n- **Impact**: Denial of Service (DoS) via CPU consumption\n- **CVE ID**: CVE-2023-51775\n\nThis vulnerability highlights the importance of input validation and resource management in cryptographic libraries, especially those handling sensitive data like JWTs.\n\n---\n\n**Influenced package and version:** jose4j before 0.9.4"
+        "answer": "```\nInfluenced package and version: jose4j before 0.9.4\n```"
     },
     {
         "question_id": 1762,
-        "answer": "Influenced package and version: Apache Airflow versions before 2.8.2"
+        "answer": "```\nInfluenced package and version: Apache Airflow versions before 2.8.2\n```"
     },
     {
         "question_id": 1763,
-        "answer": "是否涉及漏洞：是  \n漏洞号：GHSA-jr83-m233-gg6p  \n影响的产品及版本：sulu/sulu@ec9c3f9"
+        "answer": "```\n是否涉及漏洞：是\n漏洞号：GHSA-jr83-m233-gg6p\n影响的产品及版本：sulu/sulu@ec9c3f9\n```"
     },
     {
         "question_id": 1764,
-        "answer": "是否涉及漏洞：是  \n漏洞号：GHSA-65x7-c272-7g7r  \n影响的产品及版本：ImageSharp (v<3.1.3之前))"
+        "answer": "```\n是否涉及漏洞：是\n漏洞号：GHSA-65x7-c272-7g7r\n影响的产品及版本：ImageSharp (v<3.1.3之前))\n```"
     },
     {
         "question_id": 1765,
@@ -7061,11 +7061,11 @@
     },
     {
         "question_id": 1766,
-        "answer": "是否涉及漏洞：是  \n漏洞号：CVE-2024-22891  \n影响的产品及版本：Nteract v.0.28.0"
+        "answer": "```\n是否涉及漏洞：是\n漏洞号：CVE-2024-22891\n影响的产品及版本：Nteract v.0.28.0\n```"
     },
     {
         "question_id": 1767,
-        "answer": "Influenced package and version: Directus (version not specified)"
+        "answer": "```\nInfluenced package and version: Directus (version not specified)\n```"
     },
     {
         "question_id": 1768,
@@ -7073,11 +7073,11 @@
     },
     {
         "question_id": 1769,
-        "answer": "Influenced package and version: @tomphttp/bare-server-node@2.0.2"
+        "answer": "```\nInfluenced package and version: @tomphttp/bare-server-node@2.0.2\n```"
     },
     {
         "question_id": 1770,
-        "answer": "是否涉及漏洞：是  \n漏洞号：CVE-2024-26196  \n影响的产品及版本：Microsoft Edge Stable Channel (Version 122.0.2365.63)"
+        "answer": "```\n是否涉及漏洞：是\n漏洞号：CVE-2024-26196\n影响的产品及版本：Microsoft Edge Stable Channel (Version 122.0.2365.63)\n```"
     },
     {
         "question_id": 1771,
@@ -7789,7 +7789,7 @@
     },
     {
         "question_id": 1948,
-        "answer": "ABCD"
+        "answer": "ABC"
     },
     {
         "question_id": 1949,
@@ -7801,7 +7801,7 @@
     },
     {
         "question_id": 1951,
-        "answer": "ABCD"
+        "answer": "AC"
     },
     {
         "question_id": 1952,
@@ -7837,7 +7837,7 @@
     },
     {
         "question_id": 1960,
-        "answer": "B C D"
+        "answer": "BCD"
     },
     {
         "question_id": 1961,
@@ -7885,7 +7885,7 @@
     },
     {
         "question_id": 1972,
-        "answer": "A B D"
+        "answer": "ABD"
     },
     {
         "question_id": 1973,
@@ -8197,7 +8197,7 @@
     },
     {
         "question_id": 2050,
-        "answer": "ABCD"
+        "answer": "ABD"
     },
     {
         "question_id": 2051,
@@ -8661,7 +8661,7 @@
     },
     {
         "question_id": 2166,
-        "answer": "C1"
+        "answer": "C"
     },
     {
         "question_id": 2167,
@@ -9829,7 +9829,7 @@
     },
     {
         "question_id": 2458,
-        "answer": "D"
+        "answer": "d"
     },
     {
         "question_id": 2459,
@@ -11165,7 +11165,7 @@
     },
     {
         "question_id": 2792,
-        "answer": "ABCD"
+        "answer": "BCD"
     },
     {
         "question_id": 2793,
@@ -11253,7 +11253,7 @@
     },
     {
         "question_id": 2814,
-        "answer": "A"
+        "answer": "a"
     },
     {
         "question_id": 2815,
@@ -11261,7 +11261,7 @@
     },
     {
         "question_id": 2816,
-        "answer": "C"
+        "answer": "c"
     },
     {
         "question_id": 2817,
@@ -11405,7 +11405,7 @@
     },
     {
         "question_id": 2852,
-        "answer": "NO"
+        "answer": "否"
     },
     {
         "question_id": 2853,
@@ -12041,7 +12041,7 @@
     },
     {
         "question_id": 3011,
-        "answer": "A B"
+        "answer": "AB"
     },
     {
         "question_id": 3012,
@@ -12505,7 +12505,7 @@
     },
     {
         "question_id": 3127,
-        "answer": "YES"
+        "answer": "是"
     },
     {
         "question_id": 3128,
@@ -12513,7 +12513,7 @@
     },
     {
         "question_id": 3129,
-        "answer": "YES"
+        "answer": "是"
     },
     {
         "question_id": 3130,
@@ -13573,7 +13573,7 @@
     },
     {
         "question_id": 3394,
-        "answer": "ABCD"
+        "answer": "ACD"
     },
     {
         "question_id": 3395,
@@ -14217,11 +14217,11 @@
     },
     {
         "question_id": 3555,
-        "answer": "ABCD"
+        "answer": "AB"
     },
     {
         "question_id": 3556,
-        "answer": "ABCD"
+        "answer": "AC"
     },
     {
         "question_id": 3557,
@@ -14277,7 +14277,7 @@
     },
     {
         "question_id": 3570,
-        "answer": "ABCD"
+        "answer": "AB"
     },
     {
         "question_id": 3571,
@@ -15633,7 +15633,7 @@
     },
     {
         "question_id": 3909,
-        "answer": "AC"
+        "answer": ""
     },
     {
         "question_id": 3910,

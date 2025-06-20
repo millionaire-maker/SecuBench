@@ -1,396 +1,254 @@
+'''
+使用大模型根据'origin_prompt'从'prediction'中提取格式化答案。
+
+不同的模型可能会导致答案提取的略微差异，能力越强的模型，答案提取效果越好，得分也越准确
+
+使用方法：
+python cseval.py input_file output_file
+
+input_file: 输入的JSON文件路径 (例如: results/cseval/SecGPT-7B/secgpt_7b_cseval.json)
+output_file: 输出的JSON文件路径 (例如: secgpt_7b_cseval_extract.json)
+'''
+import requests
 import json
-import logging
-import os
+import datetime
 import re
-from abc import ABC, abstractmethod
-from dataclasses import dataclass
-from pathlib import Path
-from typing import Dict, List, Optional, Union, Any
-from enum import Enum
+import pandas as pd
+import argparse
 
-# 配置日志
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s'
-)
-logger = logging.getLogger(__name__)
-
-
-class AnswerType(Enum):
-    """答案类型枚举"""
-    MULTIPLE_CHOICE = "multiple_choice"  # A, B, C, D
-    BOOLEAN = "boolean"  # 是/否, 对/错, YES/NO
-    STRUCTURED = "structured"  # 结构化答案
-
-
-@dataclass
-class AnswerPattern:
-    """答案匹配模式配置"""
-    pattern: str
-    answer_type: AnswerType
-    priority: int = 1
-    case_sensitive: bool = False
-    
-    def __post_init__(self):
-        """编译正则表达式以提高性能"""
-        flags = 0 if self.case_sensitive else re.IGNORECASE
-        self.compiled_pattern = re.compile(self.pattern, flags)
+# --- 配置区 ---
+MODEL_API_URL = "http://192.168.31.10:9999/v1/chat/completions"  # 模型API地址
+MODEL_NAME = "SecGPT"  # 模型名称
+# 更新SYSTEM_PROMPT以反映其作为提取专家的角色
+SYSTEM_PROMPT = """你是一个信息提取专家。你的任务是根据"原始提示"中的要求，从"预测内容"中提取出格式完全一致的答案。
+规则：
+1.  仔细分析"原始提示"，理解题目类型（例如：单选、多选、判断、知识抽取等）以及要求的答案格式。
+2.  严格按照"原始提示"的格式要求，从"预测内容"中提取核心答案。
+3.  不要修正或猜测答案的正确性。如果预测内容是错误的，你也需要按格式要求提取出来。
+4.  如果"预测内容"包含"答案是"、"选项是"或者任何解释性文字，请忽略它们。
+5.  对于多选题，将所有选项字母连接成一个无空格、无逗号的字符串，并按字母顺序排序（例如：ACD）。
+6.  对于单选题，只返回单个字母。
+7.  对于判断题，根据提示要求返回"是"/"否"或"对"/"错"或"YES"/"NO"。
+8.  如果“预测内容”中找不到任何符合格式要求的答案，或内容含糊不清（例如：“可能是A或者B”），则返回一个空字符串
+9.  最终输出除了提取的答案外，不应包含任何其他字符。"""
+TEMPERATURE = 0.1  # 降低温度以获得更确定的输出
+TOP_P = 0.1
+MAX_TOKENS = 2048 # 适当增加以处理更长的prompt
+REQUEST_TIMEOUT = 120
 
 
-class AnswerConfig:
-    """答案提取配置类"""
-    
-    # 预编译的答案模式
-    ANSWER_PATTERNS = [
-        # 高优先级：明确的答案标识
-        AnswerPattern(
-            r'答案[：:]\s*([ABCD\s]+|是|否|对|错|正确|错误|YES|NO)(?:\s*\n|$)',
-            AnswerType.MULTIPLE_CHOICE,
-            priority=1
-        ),
-        AnswerPattern(
-            r'answer[：:]\s*([ABCD\s]+|是|否|对|错|正确|错误|YES|NO)(?:\s*\n|$)',
-            AnswerType.MULTIPLE_CHOICE,
-            priority=1
-        ),
-        
-        # 中优先级：格式化回答
-        AnswerPattern(
-            r'是否涉及漏洞[：:]\s*(是|否)',
-            AnswerType.BOOLEAN,
-            priority=2
-        ),
-        AnswerPattern(
-            r'是否[^：:]*[：:]\s*(是|否)',
-            AnswerType.BOOLEAN,
-            priority=2
-        ),
-    ]
-    
-    # 结构化答案关键词
-    STRUCTURED_KEYWORDS = [
-        ['影响的组件：', '版本号：'],
-        ['是否涉及漏洞：', '漏洞号：'],
-        ['是否涉及漏洞：', '影响的产品及版本：'],
-        ['Influenced package and version:']
-    ]
-    
-    # 有效答案映射
-    VALID_ANSWERS = {
-        # 选择题答案
-        'multiple_choice': {
-            r'^[ABCD]+$': lambda x: x,
-            r'^[ABCD](\s+[ABCD])*$': lambda x: re.sub(r'\s+', '', x),
-        },
-        # 布尔型答案
-        'boolean': {
-            r'^正\s*确$': '正确',
-            r'^错\s*误$': '错误',
-            r'^YES$': 'YES',
-            r'^NO$': 'NO',
-            r'^(是|否|对|错|正确|错误)$': lambda x: x
-        }
-    }
+def compare_json_semantics(data_list, prompt, file_name, question_key, fine_query_key):
+    """
+    比较data_list中每个JSON对象的question和fine_query字段，并将结果存入JSONL文件。
 
-
-class AnswerExtractor(ABC):
-    """答案提取器抽象基类"""
-    
-    @abstractmethod
-    def can_extract(self, text: str) -> bool:
-        """判断是否能处理该文本"""
-        pass
-    
-    @abstractmethod
-    def extract(self, text: str) -> str:
-        """提取答案"""
-        pass
-
-
-class StructuredAnswerExtractor(AnswerExtractor):
-    """结构化答案提取器"""
-    
-    def can_extract(self, text: str) -> bool:
-        """检查是否包含结构化答案关键词"""
-        for keywords in AnswerConfig.STRUCTURED_KEYWORDS:
-            if len(keywords) == 1:
-                if keywords[0] in text:
-                    return True
-            else:
-                if all(keyword in text for keyword in keywords):
-                    return True
-        return False
-    
-    def extract(self, text: str) -> str:
-        """提取结构化答案"""
-        if self.can_extract(text):
-            lines = [line.strip() for line in text.split('\n') if line.strip()]
-            return '\n'.join(lines)
-        return ""
-
-
-class PatternAnswerExtractor(AnswerExtractor):
-    """基于模式的答案提取器"""
-    
-    def __init__(self, patterns: List[AnswerPattern]):
-        self.patterns = sorted(patterns, key=lambda x: x.priority)
-    
-    def can_extract(self, text: str) -> bool:
-        """检查是否有匹配的模式"""
-        return any(pattern.compiled_pattern.search(text) for pattern in self.patterns)
-    
-    def extract(self, text: str) -> str:
-        """使用模式提取答案"""
-        for pattern in self.patterns:
-            match = pattern.compiled_pattern.search(text)
-            if match:
-                raw_answer = match.group(1).strip()
-                return self._normalize_answer(raw_answer)
-        return ""
-    
-    def _normalize_answer(self, answer: str) -> str:
-        """规范化答案"""
-        if not answer:
-            return ""
-        
-        answer = answer.strip()
-        
-        # 检查多选题答案
-        for pattern, handler in AnswerConfig.VALID_ANSWERS['multiple_choice'].items():
-            if re.match(pattern, answer):
-                return handler(answer) if callable(handler) else handler
-        
-        # 检查布尔型答案
-        for pattern, handler in AnswerConfig.VALID_ANSWERS['boolean'].items():
-            if re.match(pattern, answer, re.IGNORECASE):
-                return handler(answer) if callable(handler) else handler
-        
-        return ""
-
-
-class DirectAnswerExtractor(AnswerExtractor):
-    """直接答案提取器（整个文本就是答案）"""
-    
-    def can_extract(self, text: str) -> bool:
-        """检查整个文本是否是有效答案"""
-        normalized = self._normalize_answer(text.strip())
-        return bool(normalized)
-    
-    def extract(self, text: str) -> str:
-        """直接返回规范化的文本"""
-        return self._normalize_answer(text.strip())
-    
-    def _normalize_answer(self, answer: str) -> str:
-        """规范化答案（复用PatternAnswerExtractor的逻辑）"""
-        extractor = PatternAnswerExtractor([])
-        return extractor._normalize_answer(answer)
-
-
-class AnswerExtractionChain:
-    """答案提取责任链"""
-    
-    def __init__(self):
-        self.extractors = [
-            StructuredAnswerExtractor(),
-            PatternAnswerExtractor(AnswerConfig.ANSWER_PATTERNS),
-            DirectAnswerExtractor()
-        ]
-    
-    def extract_answer(self, prediction_text: str) -> str:
-        """
-        从预测文本中智能提取答案
-        
-        Args:
-            prediction_text: 预测文本
+    参数：
+    data_list (list): 包含JSON对象的列表。
+    prompt (str): 用于比较的提示语。
+    file_name (str): 保存结果的文件名。
+    question_key (str): 用于获取question的字段名。
+    fine_query_key (str): 用于获取fine_query的字段名。
+    """
+    with open(file_name, 'w', encoding='utf-8') as f:
+        for data in data_list:
+            question = data.get(question_key)
+            fine_query = data.get(fine_query_key)
             
-        Returns:
-            提取的答案，如果无法提取则返回空字符串
-        """
-        if not prediction_text:
-            return ""
-        
-        text = prediction_text.strip()
-        
-        for extractor in self.extractors:
+            if question is not None and fine_query is not None:
+                # 使用传入的prompt并插入实际的question和fine_query值
+                formatted_prompt = prompt.format(question=question, text=fine_query)
+                print(formatted_prompt)
+                data = {
+                    "model": MODEL_NAME,
+                    "messages": [
+                        {"role": "system", "content": SYSTEM_PROMPT},
+                        {"role": "user", "content": formatted_prompt}
+                    ],
+                    "temperature": TEMPERATURE,
+                    "top_p": TOP_P,
+                    "max_tokens": MAX_TOKENS
+                }
+                try:
+                    response = requests.post(MODEL_API_URL, json=data, timeout=REQUEST_TIMEOUT)
+                    response.raise_for_status()
+                    result = response.json()
+                    # 打印模型的原始输出
+                
+                    # 提取模型的回答并使用正则表达式提取'true'或'false'
+                    answer = result['choices'][0]['message']['content'].strip().lower()
+                    match = re.search(r'\b(true|false)\b', answer)
+                    result_value = match.group(0) if match else 'unknown'
+                    # 存入JSONL文件
+                    jsonl_content = {"question": question, f"{fine_query_key}": fine_query,"result": result_value}
+                    f.write(json.dumps(jsonl_content, ensure_ascii=False) + "\n")
+                except requests.exceptions.RequestException as e:
+                    print(f"请求失败: {e}")
+
+def read_jsonl(file_path):
+    """
+    读取JSONL文件并返回每一行的JSON对象列表。
+
+    参数：
+    file_path (str): JSONL文件的路径。
+
+    返回：
+    list: 包含每一行JSON对象的列表。
+    """
+    data_list = []
+    try:
+        with open(file_path, 'r', encoding='utf-8') as file:
+            for line in file:
+                try:
+                    data = json.loads(line)
+                    data_list.append(data)
+                except json.JSONDecodeError as e:
+                    print(f"JSON解码错误: {e}")
+    except FileNotFoundError:
+        print(f"文件{file_path}不存在。")
+    return data_list
+
+def read_json(file_path):
+    """
+    读取JSON文件并返回内容。
+
+    参数：
+    file_path (str): JSON文件的路径。
+
+    返回：
+    dict: JSON文件的内容，失败则返回空字典。
+    """
+    try:
+        with open(file_path, 'r', encoding='utf-8') as file:
+            return json.load(file)
+    except FileNotFoundError:
+        print(f"错误: 文件 {file_path} 不存在。")
+        return {}
+    except json.JSONDecodeError as e:
+        print(f"错误: JSON文件 {file_path} 解码失败: {e}")
+        return {}
+
+def extract_data(json_data):
+    """
+    从 JSON 数据中提取每个 JSON 对象的 origin_prompt 和 prediction 字段。
+    question_id 从 1 开始。
+
+    参数：
+    json_data (dict): 包含多个 JSON 对象的字典。
+
+    返回：
+    list: 包含 (question_id, origin_prompt, prediction) 元组的列表。
+    """
+    data_items = []
+    # 遍历 JSON 数据中的每个键值对
+    for key, obj in json_data.items():
+        if 'origin_prompt' in obj and 'prediction' in obj:
             try:
-                if extractor.can_extract(text):
-                    result = extractor.extract(text)
-                    if result:
-                        logger.debug(f"使用 {extractor.__class__.__name__} 提取到答案: {result}")
-                        return result
-            except Exception as e:
-                logger.warning(f"提取器 {extractor.__class__.__name__} 处理失败: {e}")
+                # question_id 从 1 开始
+                question_id = int(key) + 1
+                origin_prompt = obj['origin_prompt']
+                prediction = obj['prediction']
+                data_items.append((str(question_id), origin_prompt, prediction))
+            except (ValueError, TypeError):
+                print(f"警告: 键 '{key}' 不是有效数字，已跳过。")
                 continue
-        
-        logger.debug(f"无法从文本中提取答案: {text[:100]}...")
-        return ""
-
-
-class PredictionProcessor:
-    """预测结果处理器"""
+        else:
+            print(f"警告：键 '{key}' 对应的 JSON 对象中缺少 'origin_prompt' 或 'prediction' 字段，已跳过。")
     
-    def __init__(self, extraction_chain: Optional[AnswerExtractionChain] = None):
-        self.extraction_chain = extraction_chain or AnswerExtractionChain()
+    # 按 question_id 排序
+    data_items.sort(key=lambda x: int(x[0]))
+    return data_items
+
+def process_with_model(data_items, output_file):
+    """
+    使用模型处理预测结果并提取答案。
+
+    参数：
+    data_items (list): 包含(question_id, origin_prompt, prediction)元组的列表。
+    output_file (str): 输出文件名。
+    """
+    results = []
     
-    def process_predictions(
-        self, 
-        input_path: Union[str, Path], 
-        output_path: Union[str, Path]
-    ) -> bool:
-        """
-        处理预测结果文件
+    for i, (qid, origin_prompt, pred) in enumerate(data_items):
+        prompt = f"""原始提示:
+---
+{origin_prompt}
+---
+
+预测内容:
+---
+{pred}
+---
+
+提取的答案:"""
         
-        Args:
-            input_path: 输入JSON文件路径
-            output_path: 输出JSON文件路径
-            
-        Returns:
-            处理是否成功
-        """
-        input_path = Path(input_path)
-        output_path = Path(output_path)
-        
-        # 验证输入文件
-        if not self._validate_input_file(input_path):
-            return False
+        data = {
+            "model": MODEL_NAME,
+            "messages": [
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": prompt}
+            ],
+            "temperature": TEMPERATURE,
+            "top_p": TOP_P,
+            "max_tokens": MAX_TOKENS
+        }
         
         try:
-            # 读取数据
-            data = self._load_json_data(input_path)
-            if data is None:
-                return False
+            response = requests.post(MODEL_API_URL, json=data, timeout=REQUEST_TIMEOUT)
+            response.raise_for_status()
+            result = response.json()
+            answer = result['choices'][0]['message']['content'].strip()
             
-            # 处理数据
-            output_data = self._process_data(data)
+            # 即使有强大的prompt，也保留一个简单的清理作为后备
+            answer = answer.replace('"', '').replace("'", "").strip()
             
-            # 保存结果
-            return self._save_results(output_data, output_path)
+            result_item = {
+                "question_id": int(qid),
+                "answer": answer
+            }
+            results.append(result_item)
             
-        except Exception as e:
-            logger.error(f"处理过程中发生错误: {e}")
-            return False
-    
-    def _validate_input_file(self, input_path: Path) -> bool:
-        """验证输入文件"""
-        if not input_path.exists():
-            logger.error(f"输入文件不存在: {input_path}")
-            return False
-        
-        if not input_path.is_file():
-            logger.error(f"输入路径不是文件: {input_path}")
-            return False
-        
-        if input_path.suffix.lower() != '.json':
-            logger.warning(f"输入文件不是JSON格式: {input_path}")
-        
-        return True
-    
-    def _load_json_data(self, input_path: Path) -> Optional[Dict[str, Any]]:
-        """加载JSON数据"""
-        try:
-            with open(input_path, 'r', encoding='utf-8') as f:
-                data = json.load(f)
-            logger.info(f"成功加载数据文件: {input_path}")
-            return data
-        except json.JSONDecodeError as e:
-            logger.error(f"JSON格式错误: {e}")
-            return None
-        except Exception as e:
-            logger.error(f"读取文件失败: {e}")
-            return None
-    
-    def _process_data(self, data: Dict[str, Any]) -> List[Dict[str, Union[int, str]]]:
-        """处理数据"""
-        output_data = []
-        question_id = 1
-        
-        # 确保键按数字顺序排序
-        try:
-            sorted_keys = sorted(data.keys(), key=lambda x: int(x))
-        except ValueError:
-            logger.warning("键不是数字格式，使用字符串排序")
-            sorted_keys = sorted(data.keys())
-        
-        processed_count = 0
-        skipped_count = 0
-        
-        for key in sorted_keys:
-            entry = data[key]
+            print(f"已处理第 {i+1}/{len(data_items)} 条 (Question ID: {qid}) -> 提取到答案: '{answer}'")
             
-            if not isinstance(entry, dict):
-                logger.warning(f"键 '{key}' 对应的值不是字典，已跳过")
-                skipped_count += 1
-                continue
+        except requests.exceptions.RequestException as e:
+            print(f"请求失败 (Question ID: {qid}): {e}")
+            result_item = {
+                "question_id": int(qid),
+                "answer": "处理失败"
+            }
+            results.append(result_item)
             
-            if "prediction" not in entry:
-                logger.warning(f"键 '{key}' 缺少 'prediction' 字段，已跳过")
-                skipped_count += 1
-                continue
-            
-            prediction_content = entry["prediction"]
-            extracted_answer = self.extraction_chain.extract_answer(prediction_content)
-            
-            output_data.append({
-                "question_id": question_id,
-                "answer": extracted_answer
-            })
-            
-            question_id += 1
-            processed_count += 1
-        
-        logger.info(f"处理完成: 成功处理 {processed_count} 条，跳过 {skipped_count} 条")
-        return output_data
-    
-    def _save_results(
-        self, 
-        output_data: List[Dict[str, Union[int, str]]], 
-        output_path: Path
-    ) -> bool:
-        """保存结果"""
-        try:
-            # 确保输出目录存在
-            output_path.parent.mkdir(parents=True, exist_ok=True)
-            
-            with open(output_path, 'w', encoding='utf-8') as f:
-                json.dump(output_data, f, indent=4, ensure_ascii=False)
-            
-            logger.info(f"成功生成文件: {output_path}")
-            return True
-            
-        except Exception as e:
-            logger.error(f"保存文件失败: {e}")
-            return False
+    return results
 
+def save_results_to_json(results, output_file):
+    """
+    将结果保存为JSON文件。
 
-def main():
-    """主函数"""
-    import argparse
-    
-    parser = argparse.ArgumentParser(description='处理预测结果文件')
-    parser.add_argument('input_file', help='输入JSON文件路径')
-    parser.add_argument('output_file', help='输出JSON文件路径')
-    parser.add_argument('--verbose', '-v', action='store_true', help='详细日志输出')
-    
-    args = parser.parse_args()
-    
-    if args.verbose:
-        logging.getLogger().setLevel(logging.DEBUG)
-    
-    processor = PredictionProcessor()
-    success = processor.process_predictions(args.input_file, args.output_file)
-    
-    if not success:
-        exit(1)
+    参数：
+    results (list): 结果列表
+    output_file (str): 输出文件名
+    """
+    try:
+        with open(output_file, 'w', encoding='utf-8') as f:
+            json.dump(results, f, ensure_ascii=False, indent=4)
+        print(f"\n提取完成！结果已保存到 {output_file}")
+    except IOError as e:
+        print(f"\n错误：无法写入文件 {output_file}: {e}")
 
-
+# 主程序入口
 if __name__ == "__main__":
-    # 可以直接运行或通过命令行参数运行
-    if len(os.sys.argv) == 1:
-        # 默认路径（用于向后兼容）
-        input_file = "your_input_file.json"
-        output_file = "your_output_file.json"
+    parser = argparse.ArgumentParser(description="使用大模型根据'origin_prompt'从'prediction'中提取格式化答案。")
+    parser.add_argument("input_file", help="输入的JSON文件路径 (例如: results/cseval/SecGPT-7B/secgpt_7b_cseval.json)")
+    parser.add_argument("output_file", help="输出的JSON文件路径 (例如: secgpt_7b_cseval_extract.json)")
+    args = parser.parse_args()
+
+    print(f"正在从 {args.input_file} 读取数据...")
+    json_data = read_json(args.input_file)
+    
+    if json_data:
+        data_to_process = extract_data(json_data)
+        print(f"成功提取 {len(data_to_process)} 条数据项，准备使用模型进行处理...")
         
-        processor = PredictionProcessor()
-        processor.process_predictions(input_file, output_file)
+        results = process_with_model(data_to_process, args.output_file)
+        
+        save_results_to_json(results, args.output_file)
     else:
-        main() 
+        print("未能读取或解析输入文件，程序退出。")
