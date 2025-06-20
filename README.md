@@ -18,7 +18,11 @@ SecuBench/
 │   ├── cisco/                      # 思科威胁情报数据
 │   └── cseval/                     # CS-Eval计算机安全
 ├── evaluation/                     # 评测脚本与工具
-│   └── scripts/                    # 标准化评测脚本
+│   ├── cisco/                      # 思科威胁情报评测配置
+│   │   ├── cti_mcq_judge.py        # CTI多选题评测脚本
+│   │   └── cti_rcm_judge.py        # CTI响应案例评测脚本
+│   └── cissp/                      # CISSP认证评测配置
+│       └── cissp_judge.py          # CISSP评测脚本
 ├── models/                         # 模型配置模板
 │   └── configs/                    # OpenCompass兼容配置
 │       ├── api_models/             # API模型配置
@@ -143,11 +147,9 @@ unzip OpenCompassData-core-20240207.zip
 # 回到项目根目录
 cd ..
 
-# 创建配置目录
+# 创建模型配置目录
 mkdir -p opencompass/opencompass/configs/models/clouditera
 
-# 创建脚本目录
-mkdir -p opencompass/scripts
 
 # 复制配置文件到 OpenCompass
 cp -r SecuBench/models/configs/api_models/* opencompass/opencompass/configs/models/clouditera/
@@ -156,8 +158,8 @@ cp -r SecuBench/models/configs/local_models/* opencompass/opencompass/configs/mo
 # 复制数据集文件
 cp -r SecuBench/data/* opencompass/data/
 
-# 复制评测脚本
-cp -r SecuBench/evaluation/scripts/* opencompass/scripts/
+# 复制评测配置文件到OpenCompass数据配置目录
+cp -r SecuBench/evaluation/* opencompass/opencompass/configs/datasets/
 
 # 复制工具脚本
 cp -r SecuBench/tools/* opencompass/tools/
@@ -299,69 +301,187 @@ python tools/process_cseval_predictions.py results/cseval/SecGPT-7B/secgpt_7b_cs
 
 前往 [CS-Eval官网](https://cs-eval.com/#/app/submission) 提交 `secgpt_7b_cseval_extract.json` 文件获取最终评分。
 
+
 ##### 2. 安全认证评测 (CISSP)
 
+> ⚠️ **评测前配置**: 在运行CISSP评测前，请先修改 `opencompass/opencompass/configs/datasets/cissp/cissp_judge.py` 文件中的judge模型API配置。
+
+```python
+# 修改文件: opencompass/opencompass/configs/datasets/cissp/cissp_judge.py
+judge_model = dict(
+    abbr='your_model_name',               # 修改为您的模型名称
+    type=OpenAISDK,
+    path='your_model_name',               # 修改为您的模型名称
+    key='your_api_key',                   # 修改为您的API密钥
+    openai_api_base='http://your_model_api_url:port',  # 修改为您的API地址
+    # ... 其他配置保持不变
+)
+```
+
+**API模型评测:**
 ```bash
-# 进入OpenCompass目录
-cd opencompass
+opencompass \
+    --models SecGPT_7B \
+    --datasets cissp_judge \
+    --max-num-workers 8 \
+    -w results/SecGPT-7B \
+    --debug
+```
 
-# 运行CISSP评测
-python run.py scripts/eval_cissp.py
-
-# 本地模型指定GPU评测
-CUDA_VISIBLE_DEVICES=0,1 python run.py scripts/eval_cissp.py
+**本地模型评测:**
+```bash
+CUDA_VISIBLE_DEVICES=0,1 opencompass \
+    --models Foundation_Sec_8B \
+    --datasets cissp_judge \
+    --max-num-workers 8 \
+    -w results/Foundation-Sec-8B \
+    --debug
 ```
 
 ##### 3. 威胁情报分析 (CTI-MCQ)
 
-```bash
-# 运行CTI多选题评测
-python run.py scripts/eval_cti_mcq.py
+> ⚠️ **评测前配置**: 在运行CTI-MCQ评测前，请先修改 `opencompass/opencompass/configs/datasets/cisco/cti_mcq_judge.py` 文件中的judge模型API配置。
 
-# 本地模型指定GPU评测
-CUDA_VISIBLE_DEVICES=0,1 python run.py scripts/eval_cti_mcq.py
+```python
+# 修改文件: opencompass/opencompass/configs/datasets/cisco/cti_mcq_judge.py
+judge_model = dict(
+    abbr='your_model_name',               # 修改为您的模型名称
+    type=OpenAISDK,
+    path='your_model_name',               # 修改为您的模型名称
+    key='your_api_key',                   # 修改为您的API密钥
+    openai_api_base='http://your_model_api_url:port',  # 修改为您的API地址
+    # ... 其他配置保持不变
+)
+```
+
+**API模型评测:**
+```bash
+opencompass \
+    --models SecGPT_7B \
+    --datasets cti_mcq_judge \
+    --max-num-workers 8 \
+    -w results/SecGPT-7B \
+    --debug
+```
+
+**本地模型评测:**
+```bash
+CUDA_VISIBLE_DEVICES=0,1 opencompass \
+    --models Foundation_Sec_8B \
+    --datasets cti_mcq_judge \
+    --max-num-workers 8 \
+    -w results/Foundation-Sec-8B \
+    --debug
 ```
 
 ##### 4. 威胁响应案例 (CTI-RCM)
 
-```bash
-# 运行CTI响应案例评测
-python run.py scripts/eval_cti_rcm.py
+> ⚠️ **评测前配置**: 在运行CTI-RCM评测前，请先修改 `opencompass/opencompass/configs/datasets/cisco/cti_rcm_judge.py` 文件中的judge模型API配置。
 
-# 本地模型指定GPU评测
-CUDA_VISIBLE_DEVICES=0,1 python run.py scripts/eval_cti_rcm.py
+```python
+# 修改文件: opencompass/opencompass/configs/datasets/cisco/cti_rcm_judge.py
+judge_model = dict(
+    abbr='your_model_name',               # 修改为您的模型名称
+    type=OpenAISDK,
+    path='your_model_name',               # 修改为您的模型名称
+    key='your_api_key',                   # 修改为您的API密钥
+    openai_api_base='http://your_model_api_url:port',  # 修改为您的API地址
+    # ... 其他配置保持不变
+)
+```
+
+**API模型评测:**
+```bash
+opencompass \
+    --models SecGPT_7B \
+    --datasets cti_rcm_judge \
+    --max-num-workers 8 \
+    -w results/SecGPT-7B \
+    --debug
+```
+
+**本地模型评测:**
+```bash
+CUDA_VISIBLE_DEVICES=0,1 opencompass \
+    --models Foundation_Sec_8B \
+    --datasets cti_rcm_judge \
+    --max-num-workers 8 \
+    -w results/Foundation-Sec-8B \
+    --debug
 ```
 
 #### 🌐 通用能力基准评测
 
-##### API模型评测示例
+##### 1. 数学推理能力 (GSM8K)
 
+**API模型评测:**
 ```bash
-# 数学推理能力 (GSM8K)
 opencompass \
     --models SecGPT_7B \
     --datasets gsm8k_gen \
     --max-num-workers 8 \
     -w results/SecGPT-7B \
     --debug
+```
 
-# 多领域知识 (MMLU)
+**本地模型评测:**
+```bash
+CUDA_VISIBLE_DEVICES=0,1 opencompass \
+    --models Foundation_Sec_8B \
+    --datasets gsm8k_gen \
+    --max-num-workers 8 \
+    -w results/Foundation-Sec-8B \
+    --debug
+```
+
+##### 2. 多领域知识 (MMLU)
+
+**API模型评测:**
+```bash
 opencompass \
     --models SecGPT_7B \
     --datasets mmlu_gen \
     --max-num-workers 8 \
     -w results/SecGPT-7B \
     --debug
+```
 
-# 复杂推理 (BBH)
+**本地模型评测:**
+```bash
+CUDA_VISIBLE_DEVICES=0,1 opencompass \
+    --models Foundation_Sec_8B \
+    --datasets mmlu_gen \
+    --max-num-workers 8 \
+    -w results/Foundation-Sec-8B \
+    --debug
+```
+
+##### 3. 复杂推理 (BBH)
+
+**API模型评测:**
+```bash
 opencompass \
     --models SecGPT_7B \
     --datasets bbh_gen \
     --max-num-workers 8 \
     -w results/SecGPT-7B \
     --debug
+```
 
-# 中文理解 (C-Eval)
+**本地模型评测:**
+```bash
+CUDA_VISIBLE_DEVICES=0,1 opencompass \
+    --models Foundation_Sec_8B \
+    --datasets bbh_gen \
+    --max-num-workers 8 \
+    -w results/Foundation-Sec-8B \
+    --debug
+```
+
+##### 4. 中文理解 (C-Eval)
+
+**API模型评测:**
+```bash
 opencompass \
     --models SecGPT_7B \
     --datasets ceval_gen \
@@ -370,21 +490,11 @@ opencompass \
     --debug
 ```
 
-##### 本地模型评测示例
-
+**本地模型评测:**
 ```bash
-# 数学推理能力 (GSM8K) - 指定GPU
 CUDA_VISIBLE_DEVICES=0,1 opencompass \
     --models Foundation_Sec_8B \
-    --datasets gsm8k_gen \
-    --max-num-workers 8 \
-    -w results/Foundation-Sec-8B \
-    --debug
-
-# 多领域知识 (MMLU) - 指定GPU
-CUDA_VISIBLE_DEVICES=0,1 opencompass \
-    --Foundation-Sec-8B \
-    --datasets mmlu_gen \
+    --datasets ceval_gen \
     --max-num-workers 8 \
     -w results/Foundation-Sec-8B \
     --debug
